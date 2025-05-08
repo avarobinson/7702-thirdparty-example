@@ -1,41 +1,22 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { getAccessToken, usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import Head from "next/head";
-
-async function verifyToken() {
-  const url = "/api/verify";
-  const accessToken = await getAccessToken();
-  const result = await fetch(url, {
-    headers: {
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined),
-    },
-  });
-
-  return await result.json();
-}
+import { createWalletClient, custom, Hex } from "viem";
+import { useSignAuthorization } from "@privy-io/react-auth";
+// import { sepolia } from "viem/chains";
+import { SmartAccountSigner, WalletClientSigner } from "@aa-sdk/core";
+import {
+  createModularAccountV2Client,
+  ModularAccountV2Client,
+} from "@account-kit/smart-contracts";
+import { sepolia, alchemy } from "@account-kit/infra";
+import { Authorization } from "viem/experimental";
 
 export default function DashboardPage() {
-  const [verifyResult, setVerifyResult] = useState();
   const router = useRouter();
-  const {
-    ready,
-    authenticated,
-    user,
-    logout,
-    linkEmail,
-    linkWallet,
-    unlinkEmail,
-    linkPhone,
-    unlinkPhone,
-    unlinkWallet,
-    linkGoogle,
-    unlinkGoogle,
-    linkTwitter,
-    unlinkTwitter,
-    linkDiscord,
-    unlinkDiscord,
-  } = usePrivy();
+  const { ready, authenticated, logout } = usePrivy();
+  const { signer, client } = usePrivy7702();
 
   useEffect(() => {
     if (ready && !authenticated) {
@@ -43,19 +24,25 @@ export default function DashboardPage() {
     }
   }, [ready, authenticated, router]);
 
-  const numAccounts = user?.linkedAccounts?.length || 0;
-  const canRemoveAccount = numAccounts > 1;
-
-  const email = user?.email;
-  const phone = user?.phone;
-  const wallet = user?.wallet;
-
-  const googleSubject = user?.google?.subject || null;
-  const twitterSubject = user?.twitter?.subject || null;
-  const discordSubject = user?.discord?.subject || null;
+  async function delegateandauth() {
+    if (!client) {
+      console.error("No client yet");
+      return;
+    }
+    // Delegating (if not already) and sending a sponsored user operation
+    const uoHash = await client.sendUserOperation({
+      uo: {
+        target: "0xc0ffee254729296a45a3885639AC7E10F9d54979",
+        value: 0n,
+        data: "0x0",
+      },
+    });
+    const txnHash = await client.waitForUserOperationTransaction(uoHash);
+    console.log("transaction hash", txnHash);
+  }
 
   return (
-    <>
+    <div>
       <Head>
         <title>Privy Auth Demo</title>
       </Head>
@@ -72,153 +59,75 @@ export default function DashboardPage() {
                 Logout
               </button>
             </div>
-            <div className="mt-12 flex gap-4 flex-wrap">
-              {googleSubject ? (
-                <button
-                  onClick={() => {
-                    unlinkGoogle(googleSubject);
-                  }}
-                  className="text-sm border border-violet-600 hover:border-violet-700 py-2 px-4 rounded-md text-violet-600 hover:text-violet-700 disabled:border-gray-500 disabled:text-gray-500 hover:disabled:text-gray-500"
-                  disabled={!canRemoveAccount}
-                >
-                  Unlink Google
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    linkGoogle();
-                  }}
-                  className="text-sm bg-violet-600 hover:bg-violet-700 py-2 px-4 rounded-md text-white"
-                >
-                  Link Google
-                </button>
-              )}
-
-              {twitterSubject ? (
-                <button
-                  onClick={() => {
-                    unlinkTwitter(twitterSubject);
-                  }}
-                  className="text-sm border border-violet-600 hover:border-violet-700 py-2 px-4 rounded-md text-violet-600 hover:text-violet-700 disabled:border-gray-500 disabled:text-gray-500 hover:disabled:text-gray-500"
-                  disabled={!canRemoveAccount}
-                >
-                  Unlink Twitter
-                </button>
-              ) : (
-                <button
-                  className="text-sm bg-violet-600 hover:bg-violet-700 py-2 px-4 rounded-md text-white"
-                  onClick={() => {
-                    linkTwitter();
-                  }}
-                >
-                  Link Twitter
-                </button>
-              )}
-
-              {discordSubject ? (
-                <button
-                  onClick={() => {
-                    unlinkDiscord(discordSubject);
-                  }}
-                  className="text-sm border border-violet-600 hover:border-violet-700 py-2 px-4 rounded-md text-violet-600 hover:text-violet-700 disabled:border-gray-500 disabled:text-gray-500 hover:disabled:text-gray-500"
-                  disabled={!canRemoveAccount}
-                >
-                  Unlink Discord
-                </button>
-              ) : (
-                <button
-                  className="text-sm bg-violet-600 hover:bg-violet-700 py-2 px-4 rounded-md text-white"
-                  onClick={() => {
-                    linkDiscord();
-                  }}
-                >
-                  Link Discord
-                </button>
-              )}
-
-              {email ? (
-                <button
-                  onClick={() => {
-                    unlinkEmail(email.address);
-                  }}
-                  className="text-sm border border-violet-600 hover:border-violet-700 py-2 px-4 rounded-md text-violet-600 hover:text-violet-700 disabled:border-gray-500 disabled:text-gray-500 hover:disabled:text-gray-500"
-                  disabled={!canRemoveAccount}
-                >
-                  Unlink email
-                </button>
-              ) : (
-                <button
-                  onClick={linkEmail}
-                  className="text-sm bg-violet-600 hover:bg-violet-700 py-2 px-4 rounded-md text-white"
-                >
-                  Connect email
-                </button>
-              )}
-              {wallet ? (
-                <button
-                  onClick={() => {
-                    unlinkWallet(wallet.address);
-                  }}
-                  className="text-sm border border-violet-600 hover:border-violet-700 py-2 px-4 rounded-md text-violet-600 hover:text-violet-700 disabled:border-gray-500 disabled:text-gray-500 hover:disabled:text-gray-500"
-                  disabled={!canRemoveAccount}
-                >
-                  Unlink wallet
-                </button>
-              ) : (
-                <button
-                  onClick={linkWallet}
-                  className="text-sm bg-violet-600 hover:bg-violet-700 py-2 px-4 rounded-md text-white border-none"
-                >
-                  Connect wallet
-                </button>
-              )}
-              {phone ? (
-                <button
-                  onClick={() => {
-                    unlinkPhone(phone.number);
-                  }}
-                  className="text-sm border border-violet-600 hover:border-violet-700 py-2 px-4 rounded-md text-violet-600 hover:text-violet-700 disabled:border-gray-500 disabled:text-gray-500 hover:disabled:text-gray-500"
-                  disabled={!canRemoveAccount}
-                >
-                  Unlink phone
-                </button>
-              ) : (
-                <button
-                  onClick={linkPhone}
-                  className="text-sm bg-violet-600 hover:bg-violet-700 py-2 px-4 rounded-md text-white border-none"
-                >
-                  Connect phone
-                </button>
-              )}
-
-              <button
-                onClick={() => verifyToken().then(setVerifyResult)}
-                className="text-sm bg-violet-600 hover:bg-violet-700 py-2 px-4 rounded-md text-white border-none"
-              >
-                Verify token on server
-              </button>
-
-              {Boolean(verifyResult) && (
-                <details className="w-full">
-                  <summary className="mt-6 font-bold uppercase text-sm text-gray-600">
-                    Server verify result
-                  </summary>
-                  <pre className="max-w-4xl bg-slate-700 text-slate-50 font-mono p-4 text-xs sm:text-sm rounded-md mt-2">
-                    {JSON.stringify(verifyResult, null, 2)}
-                  </pre>
-                </details>
-              )}
+            <div>
+              <button onClick={delegateandauth}>delegate</button>
+              <br />
             </div>
-
-            <p className="mt-6 font-bold uppercase text-sm text-gray-600">
-              User object
-            </p>
-            <pre className="max-w-4xl bg-slate-700 text-slate-50 font-mono p-4 text-xs sm:text-sm rounded-md mt-2">
-              {JSON.stringify(user, null, 2)}
-            </pre>
           </>
         ) : null}
       </main>
-    </>
+    </div>
   );
 }
+
+const usePrivy7702 = () => {
+  const { signAuthorization } = useSignAuthorization();
+  const { wallets } = useWallets();
+  const [signer, setSigner] = useState<SmartAccountSigner>();
+  const [client, setClient] = useState<ModularAccountV2Client>();
+  const embeddedWallet = wallets.find((x) => x.walletClientType === "privy");
+
+  useEffect(() => {
+    console.log("embeddedWallet", embeddedWallet, wallets);
+    if (!embeddedWallet) {
+      return;
+    }
+
+    (async () => {
+      const baseSigner = new WalletClientSigner(
+        createWalletClient({
+          account: embeddedWallet!.address as Hex,
+          chain: sepolia,
+          transport: custom(await embeddedWallet!.getEthereumProvider()),
+        }),
+        "privy"
+      );
+
+      const signer: SmartAccountSigner = {
+        getAddress: baseSigner.getAddress,
+        signMessage: baseSigner.signMessage,
+        signTypedData: baseSigner.signTypedData,
+        signerType: baseSigner.signerType,
+        inner: baseSigner.inner,
+        signAuthorization: async (
+          unsignedAuth: Authorization<number, false>
+        ): Promise<Authorization<number, true>> => {
+          const signature = await signAuthorization(unsignedAuth);
+
+          return {
+            ...unsignedAuth,
+            ...{
+              r: signature.r!,
+              s: signature.s!,
+              v: signature.v!,
+            },
+          };
+        },
+      };
+
+      setSigner(signer);
+
+      const client = await createModularAccountV2Client({
+        chain: sepolia,
+        transport: alchemy({ apiKey: process.env.ALCHEMY_API_KEY || "" }),
+        signer,
+        mode: "7702",
+        policyId: process.env.ALCHEMY_POLICY_ID || "",
+      });
+
+      setClient(client);
+    })();
+  }, [embeddedWallet, signAuthorization, wallets]);
+
+  return { signer, client };
+};
