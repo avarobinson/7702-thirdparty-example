@@ -5,18 +5,22 @@ import Head from "next/head";
 import { createWalletClient, custom, Hex } from "viem";
 import { useSignAuthorization } from "@privy-io/react-auth";
 // import { sepolia } from "viem/chains";
-import { SmartAccountSigner, WalletClientSigner } from "@aa-sdk/core";
+import {
+  AuthorizationRequest,
+  SmartAccountSigner,
+  WalletClientSigner,
+} from "@aa-sdk/core";
 import {
   createModularAccountV2Client,
   ModularAccountV2Client,
 } from "@account-kit/smart-contracts";
 import { sepolia, alchemy } from "@account-kit/infra";
-import { Authorization } from "viem/experimental";
+import { SignedAuthorization } from "viem/experimental";
 
 export default function DashboardPage() {
   const router = useRouter();
   const { ready, authenticated, logout } = usePrivy();
-  const { signer, client } = usePrivy7702();
+  const { client } = usePrivy7702();
 
   useEffect(() => {
     if (ready && !authenticated) {
@@ -94,15 +98,17 @@ const usePrivy7702 = () => {
       );
 
       const signer: SmartAccountSigner = {
-        getAddress: baseSigner.getAddress,
-        signMessage: baseSigner.signMessage,
-        signTypedData: baseSigner.signTypedData,
-        signerType: baseSigner.signerType,
-        inner: baseSigner.inner,
+        ...baseSigner,
         signAuthorization: async (
-          unsignedAuth: Authorization<number, false>
-        ): Promise<Authorization<number, true>> => {
-          const signature = await signAuthorization(unsignedAuth);
+          unsignedAuth: AuthorizationRequest<number>
+        ): Promise<SignedAuthorization<number>> => {
+          const contractAddress =
+            unsignedAuth.contractAddress ?? unsignedAuth.address;
+
+          const signature = await signAuthorization({
+            ...unsignedAuth,
+            contractAddress,
+          });
 
           return {
             ...unsignedAuth,
@@ -111,6 +117,7 @@ const usePrivy7702 = () => {
               s: signature.s!,
               v: signature.v!,
             },
+            address: contractAddress,
           };
         },
       };
@@ -119,10 +126,12 @@ const usePrivy7702 = () => {
 
       const client = await createModularAccountV2Client({
         chain: sepolia,
-        transport: alchemy({ apiKey: process.env.ALCHEMY_API_KEY || "" }),
+        transport: alchemy({
+          apiKey: process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || "",
+        }),
         signer,
         mode: "7702",
-        policyId: process.env.ALCHEMY_POLICY_ID || "",
+        policyId: process.env.NEXT_PUBLIC_ALCHEMY_POLICY_ID || "",
       });
 
       setClient(client);
