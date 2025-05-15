@@ -12,9 +12,9 @@
     "lint": "next lint && npx prettier --check \"{__tests__,components,pages,styles}/**/*.{ts,tsx,js,jsx}\" && npx tsc --noEmit"
   },
   "dependencies": {
-    "@aa-sdk/core": "^4.31.2",
-    "@account-kit/infra": "^4.31.2",
-    "@account-kit/smart-contracts": "^4.31.2",
+    "@aa-sdk/core": "^4.34.0",
+    "@account-kit/infra": "^4.34.0",
+    "@account-kit/smart-contracts": "^4.34.0",
     "@headlessui/react": "^1.7.3",
     "@heroicons/react": "^2.0.12",
     "@privy-io/react-auth": "^2.8.0",
@@ -23,7 +23,7 @@
     "next": "latest",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "viem": "2.22.6"
+    "viem": "2.29.3"
   },
   "devDependencies": {
     "@tsconfig/next": "^2.0.0",
