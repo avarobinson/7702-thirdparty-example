@@ -10,7 +10,7 @@ Check out our [full guide](https://www.alchemy.com/docs/wallets/smart-contracts/
 
 1. Clone this repository and open it in your terminal. 
 ```sh
-git clone https://github.com/avarobinson/7702-thirdparty-example.git
+git clone https://github.com/avarobinson/alchemy-wallets-7702-thirdparty-example.git
 ```
 
 2. Install the necessary dependencies with `npm`.
