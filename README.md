@@ -4,6 +4,8 @@ This is an example repository using Alchemy's Smart Wallet EIP-7702 support to u
 
 If you are looking for end-to-end embedded smart wallets for social login, gas sponsorship, batching and more, check out [Smart Wallets](https://www.alchemy.com/docs/wallets/).
 
+Check out our [full guide](https://www.alchemy.com/docs/wallets/smart-contracts/modular-account-v2/using-7702) on using EIP-7702 to upgrade existing embedded EOAs with Alchemy Smart Wallets.
+
 ## Setup
 
 1. Clone this repository and open it in your terminal. 
